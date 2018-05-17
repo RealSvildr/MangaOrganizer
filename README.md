@@ -2,14 +2,12 @@
 
 Compiled File: https://github.com/RealSvildr/MangaOrganizer/blob/master/Manga%20Organizer.exe
 
-> How to use:
-
-> Extract in the anime/chapter folder
-
-> Execute
-
-> Profit???
-  
+```
+How to use:
+ - Extract in the anime/chapter folder
+ - Execute
+ - Profit???
+```
 > What it does
  * Rename all folders and subfolders to match the chapter number
    * E.g.: hardcore_leveling_warrior -> Hardcore Leveling Warrior ||  hardcore_leveling_warrior_52 -> 052
