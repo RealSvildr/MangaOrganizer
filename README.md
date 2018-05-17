@@ -3,8 +3,11 @@
 Compiled File: https://github.com/RealSvildr/MangaOrganizer/blob/master/Manga%20Organizer.exe
 
 > How to use:
+
 > Extract in the anime/chapter folder
+
 > Execute
+
 > Profit???
   
 > What it does
