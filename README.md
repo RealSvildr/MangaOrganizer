@@ -4,7 +4,7 @@ Compiled File: https://github.com/RealSvildr/MangaOrganizer/blob/master/Manga%20
 
 ```
 How to use:
- - Extract in the anime/chapter folder
+ - Extract in the manga/chapter folder
  - Execute
  - Profit???
 ```
