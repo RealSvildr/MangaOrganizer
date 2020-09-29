@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 
 namespace MangaOrganizer {
     // TODO: v2.3 >> Descompact Winrar, Delete Winrar;
@@ -12,10 +13,13 @@ namespace MangaOrganizer {
         static void Main(string[] args) {
             Console.Title = "Manga Organizer " + Ver;
             long timeNow = DateTime.Now.Ticks;
+            //var curDir = new DirectoryInfo(@"D:\Data\Desktop\Manga");
             DirectoryInfo curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 
+            var listDir = new List<DirectoryInfo>();
+
             if (true) {
-                List<DirectoryInfo> listDir = curDir.Parent.GetDirectories().ToList();
+                listDir = curDir.Parent.GetDirectories().ToList();
                 int index = listDir.FindIndex(p => p.Name == curDir.Name);
                 string prevChapter = index > 0 ? listDir[index - 1].Name : "";
                 string nextChapter = index < listDir.Count - 1 ? listDir[index + 1].Name : "";
@@ -23,11 +27,12 @@ namespace MangaOrganizer {
                 UpdateFolder(curDir, prevChapter, nextChapter);
             }
 
-            for (int i = 0; i < curDir.GetDirectories().Length; i++) {
-                string prevChapter = i > 0 ? NewName(curDir.GetDirectories()[i - 1].Name) : "";
-                string nextChapter = i < curDir.GetDirectories().Length - 1 ? NewName(curDir.GetDirectories()[i + 1].Name) : "";
+            listDir = curDir.GetDirectories().ToList();
+            for (int i = 0; i < listDir.Count; i++) {
+                string prevChapter = i > 0 ? NewName(listDir[i - 1].Name) : "";
+                string nextChapter = i < listDir.Count - 1 ? NewName(listDir[i + 1].Name) : "";
 
-                UpdateFolder(curDir.GetDirectories()[i], prevChapter, nextChapter);
+                UpdateFolder(listDir[i], prevChapter, nextChapter);
             }
 
             Console.WriteLine("");
@@ -55,6 +60,10 @@ namespace MangaOrganizer {
                     if (Name != file.Name) {
                         file.MoveTo(file.DirectoryName + "\\" + Name);
                     }
+                } else if (file.Extension.ToLower() == ".exe") {
+                    continue;
+                } else {
+                    file.Delete();
                 }
             }
 
@@ -109,7 +118,7 @@ namespace MangaOrganizer {
                 }}
 
             img {{
-                min-width: 950px;
+                width: 47vw;
             }}
 
             a {{
@@ -125,18 +134,41 @@ namespace MangaOrganizer {
 {2}
 {3}{2}
             <script>
+                var goNext = false;
                 document.onkeydown = function (e) {{
                     switch (e.keyCode) {{
                         case 39:
                         case 68:
-                            document.getElementsByClassName('next')[0].click();
+                            fnGoto('next');
                             break;
                         case 37:
                         case 65:
-                            document.getElementsByClassName('back')[0].click();
+                            fnGoto('back');
                             break;
                     }};
                 }};
+
+                function fnGoto(cName) {{
+                    if(goNext)
+                        document.getElementsByClassName(cName)[0].click();
+                    else {{
+                        goNext = true;
+                        setTimeout(() =>  goNext = false, 450);
+                    }}
+                }}
+
+                document.querySelectorAll('img').forEach(e => {{
+                    e.addEventListener('click', function() {{
+                        var T = this;
+
+                      if(T.style.width == '')
+                        T.style.width = '72vw';
+                      else if(T.style.width == '72vw')
+                        T.style.width = '90vw';
+                      else
+                        T.style.width = '';
+                    }})
+                }});
             </script>
         </div>
     </body>
@@ -170,7 +202,7 @@ namespace MangaOrganizer {
         private static string NewName(string name) {
             int Chapter = 0;
 
-            int.TryParse(name.Split('_', ' ', '.', ',').Last(), out Chapter);
+            int.TryParse(name.Split('_', ' ', '.', ',').First(), out Chapter);
 
             if (Chapter > 0) {
                 return Chapter.ToString("000");
