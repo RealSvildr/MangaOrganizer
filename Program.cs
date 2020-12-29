@@ -14,7 +14,7 @@ namespace MangaOrganizer {
         private static readonly string[] imageExtensions = { ".png", ".bmp", ".jpg", ".jpeg", ".webp" };
         private static readonly string[] ignoreExtensions = { ".exe", ".pdb" };
         private static readonly string[] removeFiles = { "gohome.png", "logo-chap.png" };
-        private static readonly string[] removeFolders = { "feedback_data" };
+        private static readonly string[] removeFolders = { "feedback_data", "a_data", "a_data_003" };
         private static readonly string[] removeFromFolderName = { " - Manganelo_files", "'", " - ManhuaPLus_files" };
         #endregion
 
@@ -265,13 +265,15 @@ namespace MangaOrganizer {
                 name = name.ToLower().Replace(extension, "");
             }
 
-            if (!int.TryParse(name.Split('_', ' ', '.', ',').First(), out position))
-                int.TryParse(name.Split('-').Last(), out position);
+            if (!int.TryParse(name.Split('_', ' ', '.', ',').First(), out position)) {
+                if ((name.Contains("img_") || name.Contains("pic_")) && !string.IsNullOrEmpty(extension)) {
+                    name = name.Replace("img_", "").Replace("pic_", "");
 
-            if (position == 0 && !string.IsNullOrEmpty(extension) && name.IndexOf("img_") > -1) {
-                name = name.Replace("img_", "");
+                    int.TryParse(name.Split('-').First(), out position);
 
-                int.TryParse(name.Split('-').First(), out position);
+                } else {
+                    int.TryParse(name.Split('-').Last(), out position);
+                }
             }
 
             if (position > 0)
