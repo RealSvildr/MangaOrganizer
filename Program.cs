@@ -8,7 +8,15 @@ namespace MangaOrganizer {
     // TODO: v2.3 >> Descompact Winrar, Delete Winrar;
     // TODO: v2.31 >> 
     class Program {
+        #region Variables
         private const string Ver = "v2.2";
+
+        private static readonly string[] imageExtensions = { ".png", ".bmp", ".jpg", ".jpeg", ".webp" };
+        private static readonly string[] ignoreExtensions = { ".exe", ".pdb" };
+        private static readonly string[] removeFiles = { "gohome.png", "logo-chap.png" };
+        private static readonly string[] removeFolders = { "feedback_data" };
+        private static readonly string[] removeFromFolderName = { " - Manganelo_files", "'" };
+        #endregion
 
         static void Main(string[] args) {
             Console.Title = "Manga Organizer " + Ver;
@@ -16,51 +24,73 @@ namespace MangaOrganizer {
             //var curDir = new DirectoryInfo(@"D:\Data\Desktop\Manga");
             DirectoryInfo curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 
-            var listDir = new List<DirectoryInfo>();
-
-            if (true) {
-                listDir = curDir.Parent.GetDirectories().ToList();
-                int index = listDir.FindIndex(p => p.Name == curDir.Name);
-                string prevChapter = index > 0 ? listDir[index - 1].Name : "";
-                string nextChapter = index < listDir.Count - 1 ? listDir[index + 1].Name : "";
-
-                UpdateFolder(curDir, prevChapter, nextChapter);
-            }
-
-            listDir = curDir.GetDirectories().ToList();
-            for (int i = 0; i < listDir.Count; i++) {
-                string prevChapter = i > 0 ? NewName(listDir[i - 1].Name) : "";
-                string nextChapter = i < listDir.Count - 1 ? NewName(listDir[i + 1].Name) : "";
-
-                UpdateFolder(listDir[i], prevChapter, nextChapter);
-            }
+            DoFolder(curDir, true);
 
             Console.WriteLine("");
             Console.WriteLine("Completed in " + TimeSpan.FromTicks(DateTime.Now.Ticks - timeNow).TotalSeconds + " sec.");
             Console.ReadKey();
         }
 
+        private static void DoFolder(DirectoryInfo curDir, bool doThisFolder = false) {
+            var listDir = new List<DirectoryInfo>();
+
+            if (doThisFolder) {
+                listDir = curDir.Parent.GetDirectories().ToList();
+
+                int index = listDir.FindIndex(p => p.Name == curDir.Name);
+
+                GetPrevNext(listDir, index, out string prev, out string next);
+                UpdateFolder(curDir, prev, next);
+            }
+
+            RemoveBadFolders(curDir, out listDir);
+            for (int i = 0; i < listDir.Count; i++) {
+                GetPrevNext(listDir, i, out string prev, out string next, true);
+                UpdateFolder(listDir[i], prev, next);
+
+                RemoveBadFolders(listDir[i], out List<DirectoryInfo> childDir);
+                foreach (var child in childDir)
+                    DoFolder(child);
+            }
+        }
+
+        private static void GetPrevNext(List<DirectoryInfo> listDir, int curIndex, out string prev, out string next, bool format = false) {
+            next = "";
+            prev = "";
+
+            if (curIndex > 0)
+                prev = listDir[curIndex - 1].Name;
+
+            if (curIndex < listDir.Count - 1)
+                next = listDir[curIndex + 1].Name;
+
+
+            if (format) {
+                prev = NewName(prev);
+                next = NewName(next);
+            }
+        }
+
         private static void UpdateFolder(DirectoryInfo folder, string prevChapter, string nextChapter) {
             List<Img> listImage = new List<Img>();
 
-            string newName = NewName(folder.Name);
+            string folderName = NewName(folder.Name);
 
             listImage = new List<Img>();
             foreach (var file in folder.GetFiles()) {
-                if (file.Extension.ToLower().In(".png", ".bmp", ".jpg", ".jpeg", ".webp")) {
-                    int Pos = 0;
-                    int.TryParse(file.Name.Split('_').Last().Replace(file.Extension, ""), out Pos);
-                    string Name = Pos > 0 ? Pos.ToString("00") + file.Extension : file.Name;
+                if (file.Extension.ToLower().In(imageExtensions) && !file.Name.ToLower().In(removeFiles)) {
+                    var fileName = NewName(file.Name, file.Extension, out int pos);
 
                     listImage.Add(new Img() {
-                        Pos = Pos,
-                        Name = Name
+                        Pos = pos,
+                        Name = fileName
                     });
 
-                    if (Name != file.Name) {
-                        file.MoveTo(file.DirectoryName + "\\" + Name);
+                    if (fileName != file.Name) {
+                        file.MoveTo(file.DirectoryName + "\\" + fileName);
                     }
-                } else if (file.Extension.ToLower() == ".exe") {
+
+                } else if (file.Extension.ToLower().In(ignoreExtensions)) {
                     continue;
                 } else {
                     file.Delete();
@@ -70,15 +100,25 @@ namespace MangaOrganizer {
             listImage = listImage.OrderBy(p => p.Pos).ToList();
             if (listImage.Count > 0) {
                 using (StreamWriter fS = new StreamWriter(folder.FullName + "\\Manga Reader.html")) {
-                    fS.WriteLine(GenerateHTML(folder.Parent.Name + " " + newName, listImage, prevChapter, nextChapter));
+                    fS.WriteLine(GenerateHTML(folder.Parent.Name + " " + folderName, listImage, prevChapter, nextChapter));
                 }
             }
 
-            if (newName != folder.Name) {
-                folder.MoveTo(folder.Parent.FullName + "\\" + newName);
+            if (folderName != folder.Name) {
+                folder.MoveTo(folder.Parent.FullName + "\\" + folderName);
             }
 
             Console.WriteLine(folder.Name + " done.");
+        }
+
+        private static void RemoveBadFolders(DirectoryInfo curDir, out List<DirectoryInfo> listDir) {
+            listDir = curDir.GetDirectories().ToList();
+
+            foreach (var dir in listDir.Where(o => o.Name.ToLower().In(removeFolders))) {
+                dir.Delete(true);
+            }
+
+            listDir = curDir.GetDirectories().ToList();
         }
 
         private static string GenerateHTML(string title, List<Img> listImage, string prevChapter, string nextChapter) {
@@ -199,14 +239,28 @@ namespace MangaOrganizer {
             return string.Format(htmlBase, Ver, title, buttons, images);
         }
 
-        private static string NewName(string name) {
-            int Chapter = 0;
+        private static string NewName(string name)
+            => NewName(name, "", out int pos);
 
-            int.TryParse(name.Split('_', ' ', '.', ',').First(), out Chapter);
-
-            if (Chapter > 0) {
-                return Chapter.ToString("000");
+        private static string NewName(string name, string extension, out int position) {
+            if (!string.IsNullOrEmpty(extension)) {
+                extension = extension.ToLower();
+                name = name.ToLower().Replace(extension, "");
             }
+
+            if (!int.TryParse(name.Split('_', ' ', '.', ',').First(), out position))
+                int.TryParse(name.Split('-').Last(), out position);
+
+            if (position > 0)
+                name = position.ToString("000");
+
+            if (!string.IsNullOrEmpty(extension))
+                name += extension;
+
+            if (position == 0 && string.IsNullOrEmpty(extension))
+                foreach (var rFolderName in removeFromFolderName)
+                    if (name.Contains(rFolderName))
+                        name = name.Replace(rFolderName, "");
 
             return name;
         }
