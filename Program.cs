@@ -15,7 +15,7 @@ namespace MangaOrganizer {
         private static readonly string[] ignoreExtensions = { ".exe", ".pdb" };
         private static readonly string[] removeFiles = { "gohome.png", "logo-chap.png" };
         private static readonly string[] removeFolders = { "feedback_data" };
-        private static readonly string[] removeFromFolderName = { " - Manganelo_files", "'" };
+        private static readonly string[] removeFromFolderName = { " - Manganelo_files", "'", " - ManhuaPLus_files" };
         #endregion
 
         static void Main(string[] args) {
@@ -49,8 +49,8 @@ namespace MangaOrganizer {
                 UpdateFolder(listDir[i], prev, next);
 
                 RemoveBadFolders(listDir[i], out List<DirectoryInfo> childDir);
-                foreach (var child in childDir)
-                    DoFolder(child);
+                if (childDir.Count > 0)
+                    DoFolder(listDir[i]);
             }
         }
 
@@ -100,7 +100,14 @@ namespace MangaOrganizer {
             listImage = listImage.OrderBy(p => p.Pos).ToList();
             if (listImage.Count > 0) {
                 using (StreamWriter fS = new StreamWriter(folder.FullName + "\\Manga Reader.html")) {
-                    fS.WriteLine(GenerateHTML(folder.Parent.Name + " " + folderName, listImage, prevChapter, nextChapter));
+                    fS.WriteLine(
+                        GenerateHTML(
+                            GetTitle(folder.Parent.Name, folderName),
+                            listImage,
+                            prevChapter,
+                            nextChapter
+                        )
+                    );
                 }
             }
 
@@ -119,6 +126,16 @@ namespace MangaOrganizer {
             }
 
             listDir = curDir.GetDirectories().ToList();
+        }
+
+        private static string GetTitle(string parent, string curFolder) {
+            var title = curFolder;
+            var strTest = curFolder.Replace("Chapter", "").Trim();
+
+            if (int.TryParse(strTest, out int chapter))
+                title = parent + " - Chapter " + chapter;
+
+            return title;
         }
 
         private static string GenerateHTML(string title, List<Img> listImage, string prevChapter, string nextChapter) {
@@ -250,6 +267,12 @@ namespace MangaOrganizer {
 
             if (!int.TryParse(name.Split('_', ' ', '.', ',').First(), out position))
                 int.TryParse(name.Split('-').Last(), out position);
+
+            if (position == 0 && !string.IsNullOrEmpty(extension) && name.IndexOf("img_") > -1) {
+                name = name.Replace("img_", "");
+
+                int.TryParse(name.Split('-').First(), out position);
+            }
 
             if (position > 0)
                 name = position.ToString("000");
