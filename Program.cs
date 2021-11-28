@@ -79,7 +79,7 @@ namespace MangaOrganizer {
             listImage = new List<Img>();
             foreach (var file in folder.GetFiles()) {
                 if (file.Extension.ToLower().In(imageExtensions) && !file.Name.ToLower().In(removeFiles)) {
-                    var fileName = NewName(file.Name, file.Extension, out int pos);
+                    var fileName = NewName(file.Name, file.Extension, out int pos, folder.Name.Contains("ManhuaPLus_files"));
 
                     listImage.Add(new Img() {
                         Pos = pos,
@@ -259,20 +259,20 @@ namespace MangaOrganizer {
         private static string NewName(string name)
             => NewName(name, "", out int pos);
 
-        private static string NewName(string name, string extension, out int position) {
+        private static string NewName(string name, string extension, out int position, bool firstPos = false) {
             if (!string.IsNullOrEmpty(extension)) {
                 extension = extension.ToLower();
                 name = name.ToLower().Replace(extension, "");
             }
 
             if (!int.TryParse(name.Split('_', ' ', '.', ',').First(), out position)) {
-                if ((name.Contains("img_") || name.Contains("pic_")) && !string.IsNullOrEmpty(extension)) {
-                    name = name.Replace("img_", "").Replace("pic_", "");
+                if (firstPos) {
+                    name = name.Replace("img_", "").Replace("pic_", "").Replace("output", "");
 
                     int.TryParse(name.Split('-').First(), out position);
-
                 } else {
-                    int.TryParse(name.Split('-').Last(), out position);
+                    Console.WriteLine("Entered in that random place");
+                    int.TryParse(name.Split('-').Last(), out position); //Not Sure when it enters here
                 }
             }
 
